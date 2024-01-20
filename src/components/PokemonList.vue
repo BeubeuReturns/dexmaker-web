@@ -18,6 +18,10 @@
       <li v-for="ability in selectedPokemon.normal_abilities" :key="ability">
         {{ ability }}: {{ getAbilityFlavorText(ability) }}
       </li>
+      <h3>Hidden Ability :</h3>
+      <li v-for="ability in selectedPokemon.hidden_abilities" :key="ability">
+        {{ ability }}: {{ getAbilityFlavorText(ability) }}
+      </li>
     </ul>
     <h3>Stats :</h3>
     <div class="stat" v-for="(value, key) in selectedPokemon.stats" :key="key">
