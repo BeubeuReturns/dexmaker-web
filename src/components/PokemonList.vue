@@ -19,9 +19,17 @@
         {{ ability }}: {{ getAbilityFlavorText(ability) }}
       </li>
     </ul>
-    <!-- Add more details as needed -->
+    <h3>Stats :</h3>
+    <div class="stat" v-for="(value, key) in selectedPokemon.stats" :key="key">
+    <span class="stat-name">{{ getStatName(key) }}:</span>
+    <span class="stat-value">{{ value }}</span>
+    <div class="bar-container">
+      <div class="bar" :style="{ width: getBarWidth(value), backgroundColor: getStatColor(key) }"></div>
+    </div>
+      <span>{{ value }}</span>
+    </div>
   </div>
-</div>
+  </div>
 </template>
 
 <script>
@@ -55,6 +63,33 @@ export default {
       return this.abilitiesFlavorText[ability]?.en || 'No description available.';
       
     },
+    getStatColor(stat) {
+      const colors = {
+        hp: 'yellow',
+        attack: 'orange',
+        defense: 'red',
+        'special-attack': 'green',
+        'special-defense': 'blue',
+        speed: 'purple'
+      };
+      return colors[stat] || 'grey';
+    },
+    getBarWidth(value) {
+      const maxStatValue = 200;
+      const widthPercentage = (value / maxStatValue) * 100;
+      return `${widthPercentage}%`;
+    },
+    getStatName(key) {
+      const names = {
+        hp: 'HP',
+        attack: 'Attack',
+        defense: 'Defense',
+        'special-attack': 'Spe Atk',
+        'special-defense': 'Spe Def',
+        speed: 'Speed'
+      };
+      return names[key] || key;
+    },
   },
 };
 </script>
@@ -62,6 +97,35 @@ export default {
 
 
 <style scoped>
+
+.pokemon-stats .stat {
+  display: flex;
+  align-items: center;
+}
+
+.pokemon-stats .stat span {
+  margin-right: 5px;
+}
+
+.bar-container {
+  height: 10px; /* Adjust as needed */
+  background-color: transparent; /* Light grey background for the bar */
+  border-radius: 5px; /* Rounded corners for the bar container */
+}
+
+.bar {
+  height: 100%;
+  border-radius: 5px; /* Optionally rounded corners for the bar itself */
+  /* Transition for animated width change */
+  transition: width 0.5s ease;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
 .content-container {
   display: flex;
   width: 100%; /* Take the full viewport width */
