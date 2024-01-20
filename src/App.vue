@@ -6,8 +6,6 @@ import HelloWorld from './components/HelloWorld.vue'
 <template>
   <div class="app-container">
     <header>
-      <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
       <div class="wrapper">
         <HelloWorld msg="Regional Pokedex Maker" />
 
@@ -35,7 +33,7 @@ header {
 }
 
 header {
-  /* Your header styles */
+align-content: center;
 }
 
 .main-content {
