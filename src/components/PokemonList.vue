@@ -9,12 +9,17 @@
   class="pokemon-item"
   @click="togglePokemonSelection(pokemon)"
 >
-        <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="pokemon.name" />
-        <p>{{ formatName(pokemon.name) }}</p>
-      </div>
+  <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="pokemon.name" />
+  <p>{{ formatName(pokemon.name) }}</p>
+  <div v-if="selectedPokemonIds.includes(pokemon.id)">
+  </div>
+</div>
     </div>
     <div v-if="selectedPokemon" class="pokemon-details">
       <h2>{{ formatName(selectedPokemon.name) }}</h2>
+      <div>
+    <img v-for="type in selectedPokemon.types" :key="type" :src="`/dexmaker-web/images/types/${formatName(type)}.png`" :alt="type" class="type-icon" />
+  </div>
       <ul>
         <h3>Abilities:</h3>
         <li v-for="ability in selectedPokemon.normal_abilities" :key="ability">
@@ -218,4 +223,11 @@ export default {
 .selected {
   border: 2px solid blue; /* Or any style to highlight */
 }
+
+.type-icon {
+  width: 80px; /* Adjust as needed */
+  height: 16px; /* Adjust as needed */
+  margin-right: 5px;
+}
+
 </style>
