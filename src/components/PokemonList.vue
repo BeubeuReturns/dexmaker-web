@@ -1,16 +1,23 @@
 <template>
+  <div class="selection-bar">
+    Selected: {{ selectedPokemonIds.length }}
+    <button @click="deselectAllPokemons">Deselect All</button>
+    <label>
+      <input type="checkbox" v-model="selectByEvolutionLine">
+      Select by Evolution Line
+    </label>
+  </div>
   <div class="content-container">
     <div class="pokemon-list">
-      
       <div
-  v-for="pokemon in pokemons"
-  :key="pokemon.id"
-  :class="{ 'selected': selectedPokemonIds.includes(pokemon.id) }"
-  class="pokemon-item"
-  @click="togglePokemonSelection(pokemon)"
->
-  <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="pokemon.name" />
-  <p>{{ formatName(pokemon.name) }}</p>
+        v-for="pokemon in pokemons"
+        :key="pokemon.id"
+        :class="{ 'selected': selectedPokemonIds.includes(pokemon.id) }"
+        class="pokemon-item"
+        @click="handlePokemonSelection(pokemon)"
+      >
+        <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="pokemon.name" />
+        <p>{{ formatName(pokemon.name) }}</p>
   <div v-if="selectedPokemonIds.includes(pokemon.id)">
   </div>
 </div>
@@ -56,9 +63,17 @@ export default {
       pokemons: [],
       selectedPokemonIds: [],
       abilitiesFlavorText: {},
-      selectedPokemon: null
+      selectedPokemon: null,
+      evolutionChains: {},
+      selectByEvolutionLine: false
     }
   },
+  watch: {
+  selectedPokemonIds(newVal) {
+    localStorage.setItem('selectedPokemonIds', JSON.stringify(newVal));
+  }
+},
+
   mounted() {
     fetch('/dexmaker-web/pokemon_data_sorted.json')
       .then((response) => response.json())
@@ -72,10 +87,16 @@ export default {
         this.abilitiesFlavorText = data
       })
       // Load from local storage
-  const savedSelections = localStorage.getItem('selectedPokemonIds');
+      const savedSelections = localStorage.getItem('selectedPokemonIds');
   if (savedSelections) {
     this.selectedPokemonIds = JSON.parse(savedSelections);
   }
+      // Fetch evolution chain data
+      fetch('/dexmaker-web/evolution_chains.json')
+      .then(response => response.json())
+      .then(data => {
+        this.evolutionChains = data;
+      });
   },
   methods: {
     selectPokemon(pokemon) {
@@ -134,7 +155,53 @@ export default {
     const selectedPokemons = this.pokemons.filter(pokemon => this.selectedPokemonIds.includes(pokemon.id));
     // Export logic for `selectedPokemons`
   },
+  deselectAllPokemons() {
+    this.selectedPokemonIds = [];
+  },
+  toggleEvolutionLine(pokemonName) {
+  const chain = this.findEvolutionChain(pokemonName);
+  if (chain) {
+    // Create a new array
+    let newSelectedPokemonIds = [...this.selectedPokemonIds];
 
+    chain.forEach(pokeName => {
+      console.log(this.pokeName);
+      const index = newSelectedPokemonIds.indexOf(pokeName);
+      if (index === -1) {
+        newSelectedPokemonIds.push(pokeName); // Select
+      } else {
+        newSelectedPokemonIds.splice(index, 1); // Deselect
+      }
+    });
+
+    // Update the original array with the new array
+    this.selectedPokemonIds = newSelectedPokemonIds;
+  }
+},
+
+findEvolutionChain(pokemonName) {
+  for (const chain of Object.values(this.evolutionChains)) {
+    for (const details of Object.values(chain)) {
+      const fullChainNames = details.full_chain.map(item => item[0]);
+      if (fullChainNames.includes(pokemonName)) {
+        // Return only the IDs from the full chain
+        return details.full_chain.map(item => item[1]);
+      }
+    }
+  }
+  return null;
+},
+
+    isSelected(pokemonId) {
+    return this.selectedPokemonIds.includes(pokemonId);
+  },
+  handlePokemonSelection(pokemon) {
+      if (this.selectByEvolutionLine) {
+        this.toggleEvolutionLine(pokemon.name);
+      } else {
+        this.togglePokemonSelection(pokemon);
+      }
+    },
   
   }
 }
@@ -221,13 +288,20 @@ export default {
 }
 
 .selected {
-  border: 2px solid blue; /* Or any style to highlight */
+  border: 2px solid rgb(30, 255, 0); /* Or any style to highlight */
+  border-radius: 5px;
 }
 
 .type-icon {
   width: 80px; /* Adjust as needed */
   height: 16px; /* Adjust as needed */
   margin-right: 5px;
+}
+.selection-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  /* Add more styling as needed */
 }
 
 </style>

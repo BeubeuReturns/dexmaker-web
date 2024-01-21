@@ -10,8 +10,8 @@ import HelloWorld from './components/HelloWorld.vue'
         <HelloWorld msg="Regional Pokedex Maker" />
 
         <nav>
-          <RouterLink to="/">Home</RouterLink>
-          <RouterLink to="/about">About</RouterLink>
+          <RouterLink to="/">Home</RouterLink>>
+          <RouterLink to="/overview">Overview</RouterLink>
         </nav>
       </div>
     </header>
@@ -19,6 +19,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <RouterView />
   </div>
 </template>
+
 
 <style scoped>
 .app-container {
