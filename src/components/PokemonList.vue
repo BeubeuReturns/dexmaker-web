@@ -1,32 +1,38 @@
 <template>
   <div class="selection-bar">
+    
     Selected: {{ selectedPokemonIds.length }}
     <button @click="deselectAllPokemons">Deselect All</button>
     <label>
-      <input type="checkbox" v-model="selectByEvolutionLine">
+      <input type="checkbox" v-model="selectByEvolutionLine" @change="updateFinalStages">
       Select by Evolution Line
     </label>
+    <button @click="exportSelectedPokemons">Export Selected</button>
   </div>
   <div class="content-container">
     <div class="pokemon-list">
-      <div
-        v-for="pokemon in pokemons"
-        :key="pokemon.id"
-        :class="{ 'selected': selectedPokemonIds.includes(pokemon.id) }"
-        class="pokemon-item"
-        @click="handlePokemonSelection(pokemon)"
-      >
-        <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="pokemon.name" />
+  <div
+    v-for="pokemon in displayPokemons"
+    :key="pokemon.id"
+    :class="{ 'selected': isSelected(pokemon.id) }"
+    class="pokemon-item"
+    @click="handlePokemonSelection(pokemon)"
+  >
+        <img :src="`/dexmaker-web/images/pokemons/${pokemon.id}.png`" :alt="formatName(pokemon.name)" />
         <p>{{ formatName(pokemon.name) }}</p>
-  <div v-if="selectedPokemonIds.includes(pokemon.id)">
-  </div>
-</div>
+      </div>
     </div>
     <div v-if="selectedPokemon" class="pokemon-details">
       <h2>{{ formatName(selectedPokemon.name) }}</h2>
       <div>
-    <img v-for="type in selectedPokemon.types" :key="type" :src="`/dexmaker-web/images/types/${formatName(type)}.png`" :alt="type" class="type-icon" />
-  </div>
+        <img 
+          v-for="type in selectedPokemon.types" 
+          :key="type" 
+          :src="`/dexmaker-web/images/types/${formatName(type)}.png`" 
+          :alt="type" 
+          class="type-icon" 
+        />
+      </div>
       <ul>
         <h3>Abilities:</h3>
         <li v-for="ability in selectedPokemon.normal_abilities" :key="ability">
@@ -40,21 +46,21 @@
           {{ formatAbility(ability) }}: {{ getAbilityFlavorText(ability) }}
         </li>
       </ul>
-      <h3>Stats :</h3>
+      <h3>Stats:</h3>
       <div class="stat" v-for="(value, key) in selectedPokemon.stats" :key="key">
-
         <span class="stat-name">{{ getStatName(key) }}:</span>
         <span class="stat-value">{{ value }}</span>
         <div class="bar-container">
           <div
-          class="bar"
-  :style="{ width: getBarWidth(value), backgroundColor: getStatColor(value) }"
+            class="bar"
+            :style="{ width: getBarWidth(value), backgroundColor: getStatColor(value) }"
           ></div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 
 <script>
 export default {
@@ -74,31 +80,81 @@ export default {
   }
 },
 
-  mounted() {
-    fetch('/dexmaker-web/pokemon_data_sorted.json')
-      .then((response) => response.json())
-      .then((data) => {
-        this.pokemons = data
-      })
+computed: {
+  displayPokemons() {
+    if (this.selectByEvolutionLine) {
+      // Iterate over the evolution chains and accumulate all final forms' IDs
+      const finalFormIds = new Set();
+      Object.values(this.evolutionChains).forEach(chain => {
+        Object.values(chain).forEach(details => {
+          details.final_forms.forEach(finalFormName => {
+            const pokemon = this.pokemons.find(p => p.name === finalFormName);
+            if (pokemon) {
+              finalFormIds.add(pokemon.id);
+            }
+          });
+        });
+      });
 
-    fetch('/dexmaker-web/abilities_flavor_text.json')
-      .then((response) => response.json())
-      .then((data) => {
-        this.abilitiesFlavorText = data
-      })
-      // Load from local storage
-      const savedSelections = localStorage.getItem('selectedPokemonIds');
+      // Filter the pokemons to include only those that are final evolutions
+      return this.pokemons.filter(pokemon => finalFormIds.has(pokemon.id));
+    }
+
+    // If not selecting by evolution line, return all pokemons
+    return this.pokemons;
+  },
+  finalStagePokemons() {
+    if (!this.selectByEvolutionLine) {
+      return this.pokemons;
+    }
+    return this.pokemons.filter(pokemon => {
+      const chainDetails = this.findEvolutionChainDetails(pokemon.name);
+      return chainDetails && chainDetails.final_forms.includes(pokemon.name);
+    });
+  },
+},
+
+
+mounted() {
+  // Fetching the Pokémon data
+  fetch('/dexmaker-web/pokemon_data_sorted.json')
+    .then(response => response.json())
+    .then(data => {
+      this.pokemons = data.map(pokemon => ({
+        ...pokemon,
+        evolutionChainId: this.findEvolutionChainId(pokemon.name)
+      }));
+      console.log("Pokémons data loaded:", this.pokemons);
+    });
+
+  // Fetching the abilities flavor text
+  fetch('/dexmaker-web/abilities_flavor_text.json')
+    .then(response => response.json())
+    .then(data => {
+      this.abilitiesFlavorText = data;
+      console.log("Abilities flavor text loaded:", this.abilitiesFlavorText);
+    });
+
+  // Fetching evolution chain data
+  fetch('/dexmaker-web/evolution_chains.json')
+    .then(response => response.json())
+    .then(data => {
+      this.evolutionChains = data;
+      console.log("Evolution chains loaded:", this.evolutionChains);
+    });
+
+  // Load selected Pokémon IDs from local storage
+  const savedSelections = localStorage.getItem('selectedPokemonIds');
   if (savedSelections) {
     this.selectedPokemonIds = JSON.parse(savedSelections);
+    console.log("Selected Pokémon IDs loaded from localStorage:", this.selectedPokemonIds);
   }
-      // Fetch evolution chain data
-      fetch('/dexmaker-web/evolution_chains.json')
-      .then(response => response.json())
-      .then(data => {
-        this.evolutionChains = data;
-      });
-  },
+},
+
+
   methods: {
+
+    
     selectPokemon(pokemon) {
       this.selectedPokemon = pokemon
     },
@@ -141,43 +197,31 @@ export default {
         .join(' ')
     },
     
-    togglePokemonSelection(pokemon) {
-      this.selectedPokemon = pokemon; 
-    const index = this.selectedPokemonIds.indexOf(pokemon.id);
-    if (index > -1) {
-      this.selectedPokemonIds.splice(index, 1); // Deselect
-    } else {
-      this.selectedPokemonIds.push(pokemon.id); // Select
-    }
-    localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
-    },
-  exportSelectedPokemons() {
-    const selectedPokemons = this.pokemons.filter(pokemon => this.selectedPokemonIds.includes(pokemon.id));
-    // Export logic for `selectedPokemons`
-  },
   deselectAllPokemons() {
     this.selectedPokemonIds = [];
   },
   toggleEvolutionLine(pokemonName) {
-  const chain = this.findEvolutionChain(pokemonName);
-  if (chain) {
-    // Create a new array
-    let newSelectedPokemonIds = [...this.selectedPokemonIds];
-
-    chain.forEach(pokeName => {
-      console.log(this.pokeName);
-      const index = newSelectedPokemonIds.indexOf(pokeName);
-      if (index === -1) {
-        newSelectedPokemonIds.push(pokeName); // Select
-      } else {
-        newSelectedPokemonIds.splice(index, 1); // Deselect
-      }
-    });
-
-    // Update the original array with the new array
-    this.selectedPokemonIds = newSelectedPokemonIds;
+  const chainDetails = this.findEvolutionChainDetails(pokemonName);
+  if (chainDetails) {
+    let selectedIds;
+    if (this.selectByEvolutionLine) {
+      // If we are selecting by evolution line, select only the final forms
+      selectedIds = chainDetails.final_forms.map(finalFormName => {
+        const finalFormPokemon = this.pokemons.find(pokemon => pokemon.name === finalFormName);
+        return finalFormPokemon ? finalFormPokemon.id : null;
+      }).filter(id => id !== null); // Filter out any nulls
+    } else {
+      // If we are not selecting by evolution line, select the entire chain
+      selectedIds = chainDetails.full_chain.map(pokemonName => {
+        const pokemon = this.pokemons.find(pokemon => pokemon.name === pokemonName[0]);
+        return pokemon ? pokemon.id : null;
+      }).filter(id => id !== null); // Filter out any nulls
+    }
+    this.selectedPokemonIds = selectedIds;
+    localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
   }
 },
+
 
 findEvolutionChain(pokemonName) {
   for (const chain of Object.values(this.evolutionChains)) {
@@ -195,13 +239,157 @@ findEvolutionChain(pokemonName) {
     isSelected(pokemonId) {
     return this.selectedPokemonIds.includes(pokemonId);
   },
-  handlePokemonSelection(pokemon) {
-      if (this.selectByEvolutionLine) {
-        this.toggleEvolutionLine(pokemon.name);
-      } else {
-        this.togglePokemonSelection(pokemon);
+
+  isFinalStage(pokemon) {
+    console.log("Checking if final stage for:", pokemon.name);
+    const chainId = this.findEvolutionChainId(pokemon.name);
+    if (chainId) {
+      const chainDetails = this.evolutionChains[chainId];
+      for (const details of Object.values(chainDetails)) {
+        if (details.final_forms.includes(pokemon.name)) {
+          console.log("Is final stage:", true);
+          return true;
+        }
       }
-    },
+    }
+    console.log("Is final stage:", false);
+    return false;
+  },
+
+  handlePokemonSelection(pokemon) {
+    if (this.selectByEvolutionLine && this.isFinalStage(pokemon)) {
+      if (this.isSelected(pokemon.id)) {
+        // If the Pokémon is already selected, deselect the entire chain
+        this.deselectEntireChain(pokemon);
+      } else {
+        // If the Pokémon is not selected, select the entire chain
+        this.selectEntireChain(pokemon);
+      }
+    } else {
+      // For normal view, just toggle the selection
+      this.togglePokemonSelection(pokemon);
+    }
+  },
+
+
+
+
+selectEntireChain(pokemon) {
+    console.log("Selecting entire chain for:", pokemon.name);
+
+    // Find the evolution chain based on the selected Pokémon's evolutionChainId
+    const chainId = this.findEvolutionChainId(pokemon.name);
+    if (chainId) {
+      console.log("Found chain details for:", pokemon.name);
+
+      // Access the correct chain details using chainId and the species name
+      const speciesChain = this.evolutionChains[chainId];
+      for (const [, details] of Object.entries(speciesChain)) {
+        if (details.final_forms.includes(pokemon.name)) {
+          details.full_chain.forEach(([, id]) => {
+            if (!this.selectedPokemonIds.includes(id)) {
+              this.selectedPokemonIds.push(id);
+              console.log("Adding to selection:", id);
+            }
+          });
+          break; // Exit loop after finding the correct chain
+        }
+      }
+    } else {
+      console.log("No chain details found for:", pokemon.name);
+    }
+
+    localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
+    console.log("Updated selectedPokemonIds:", this.selectedPokemonIds);
+  },
+
+
+  togglePokemonSelection(pokemon) {
+    const index = this.selectedPokemonIds.indexOf(pokemon.id);
+    if (this.selectByEvolutionLine && this.isFinalStage(pokemon)) {
+      if (index > -1) {
+        // Deselect the entire chain if the Pokémon is already selected
+        this.deselectEntireChain(pokemon);
+      } else {
+        // Select the entire chain if the Pokémon is not selected
+        this.selectEntireChain(pokemon);
+      }
+    } else {
+      // For the normal view or if the Pokémon is not a final stage
+      if (index > -1) {
+        this.selectedPokemonIds.splice(index, 1); // Deselect
+      } else {
+        this.selectedPokemonIds.push(pokemon.id); // Select
+      }
+    }
+    localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
+  },
+
+  deselectSinglePokemon(pokemonId) {
+    const index = this.selectedPokemonIds.indexOf(pokemonId);
+    if (index > -1) {
+      this.selectedPokemonIds.splice(index, 1); // Deselect
+      localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
+    }
+  },
+
+  deselectEntireChain(pokemon) {
+    const chainId = this.findEvolutionChainId(pokemon.name);
+    if (chainId) {
+      const speciesChain = this.evolutionChains[chainId];
+      for (const [, details] of Object.entries(speciesChain)) {
+        details.full_chain.forEach(([, id]) => {
+          const index = this.selectedPokemonIds.indexOf(id);
+          if (index > -1) {
+            this.selectedPokemonIds.splice(index, 1);
+          }
+        });
+      }
+      localStorage.setItem('selectedPokemonIds', JSON.stringify(this.selectedPokemonIds));
+    }
+  },
+
+  exportSelectedPokemons() {
+    const selectedPokemons = this.pokemons.filter(pokemon => this.selectedPokemonIds.includes(pokemon.id));
+    
+    // Convert selectedPokemons to JSON
+    const selectedPokemonsJson = JSON.stringify(selectedPokemons, null, 2);
+
+    // Option 1: Log the JSON to the console
+    console.log("Exporting Selected Pokémons:", selectedPokemonsJson);
+
+    // Option 2: Trigger a file download with the JSON data
+    const blob = new Blob([selectedPokemonsJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'selected-pokemons.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  },
+
+  findEvolutionChainId(pokemonName) {
+    console.log("Finding evolution chain ID for:", pokemonName);
+
+    for (const [chainId, speciesData] of Object.entries(this.evolutionChains)) {
+      for (const [, details] of Object.entries(speciesData)) {
+        const namesInChain = details.full_chain.map(entry => entry[0].toLowerCase());
+        if (namesInChain.includes(pokemonName.toLowerCase())) {
+          console.log("Found evolution chain ID for " + pokemonName + ": " + chainId);
+          return chainId;
+        }
+      }
+    }
+
+    console.log("No evolution chain ID found for:", pokemonName);
+    return null;
+  },
+
+
+
+
+
+
   
   }
 }
@@ -260,7 +448,6 @@ findEvolutionChain(pokemonName) {
   font-style: italic;
 }
 
-/* Rest of your styles for stat bars etc. */
 .stat {
   display: grid;
   grid-template-columns: minmax(auto, 100px) minmax(auto, 50px) auto;
