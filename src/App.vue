@@ -1,17 +1,16 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
   <div class="app-container">
     <header>
       <div class="wrapper">
-        <HelloWorld msg="Regional Pokedex Maker" />
+        <h1>Regional Pokedex Maker</h1>
 
         <nav>
-          <RouterLink to="/">Home</RouterLink>>
-          <RouterLink to="/overview">Overview</RouterLink>
+         <h2> <RouterLink to="/">Pokémon List</RouterLink>>
+          <RouterLink to="/overview">Overview</RouterLink></h2>
         </nav>
       </div>
     </header>
@@ -22,6 +21,12 @@ import HelloWorld from './components/HelloWorld.vue'
 
 
 <style scoped>
+h1{
+  color:limegreen;
+  font-size:xx-large;
+  padding-bottom: 1%;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;

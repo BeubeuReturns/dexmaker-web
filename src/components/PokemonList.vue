@@ -257,16 +257,16 @@ findEvolutionChain(pokemonName) {
   },
 
   handlePokemonSelection(pokemon) {
+    // Set the clicked Pokémon as the selected one to display its details
+    this.selectPokemon(pokemon);
+
     if (this.selectByEvolutionLine && this.isFinalStage(pokemon)) {
       if (this.isSelected(pokemon.id)) {
-        // If the Pokémon is already selected, deselect the entire chain
         this.deselectEntireChain(pokemon);
       } else {
-        // If the Pokémon is not selected, select the entire chain
         this.selectEntireChain(pokemon);
       }
     } else {
-      // For normal view, just toggle the selection
       this.togglePokemonSelection(pokemon);
     }
   },

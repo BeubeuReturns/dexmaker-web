@@ -77,7 +77,9 @@
           label: 'Type Distribution',
           data: counts,
           backgroundColor: backgroundColors,
-          hoverOffset: 4
+          borderColor: 'transparent', // Change this to your desired border color
+          borderWidth: 2, // Set the border width
+          hoverOffset: 3
         }
       ]
     };
@@ -160,11 +162,34 @@
             }
           },
           legend: {
-            position: 'top',
+            position: 'left',
+            color: 'white',
+            labels: {
+              generateLabels: (chart) => {
+                const data = chart.data;
+                if (data.labels.length && data.datasets.length) {
+                  return data.labels.map((label, i) => {
+                    const meta = chart.getDatasetMeta(0);
+                    const total = meta.total;
+                    const value = data.datasets[0].data[i];
+                    const percentage = ((value / total) * 100).toFixed(2) + '%';
+
+                    return {
+                      text: label + ' - ' + percentage,
+                      fillStyle: data.datasets[0].backgroundColor[i],
+                      index: i
+                    };
+                  });
+                }
+                return [];
+              },
+
+              
+            }
           },
           title: {
             display: true,
-            text: 'Pokémon Type Distribution'
+            text: 'Your Dex Type Distribution'
           },
         }
       }
@@ -184,7 +209,7 @@
     padding: 20px; /* Add some padding around the edges */
   }
   .chart-container {
-    width: 50%; /* Adjust the width as needed */
+    width: 33%; /* Adjust the width as needed */
     height: auto; /* Maintain the aspect ratio */
     margin-right: 20px; /* Add some margin between chart and tooltip */
   }
@@ -192,6 +217,7 @@
   #typeChart {
     width: 100%; /* Make the canvas fill the container */
     height: auto; /* Maintain the aspect ratio */
+
   }
   
   .custom-tooltip {
